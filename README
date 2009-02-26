@@ -1,0 +1,19 @@
+RedTree Systems Content Management System
+
+Depends on RedTree's framework, this repository should be grafted into the
+site tree thusly:
+
+/path/to/site/root/
+  SITE/
+    framework/
+      lib/
+        cms/     <-- here
+    local/
+      lib/
+        cms/     <-- or here
+
+It assumes that it can include things like "lib/cms/CMSConnector.php" and
+access urls like http://server/site/root/lib/cms/css/bla, so if you've done
+something really creative with your environment like fudge the include_path and
+rewrite rules beyond what the standard framwork provides for, you can put it
+whereever you'd like.
