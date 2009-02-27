@@ -1,7 +1,7 @@
 <?php
 
 /**
- * SiteModule definition
+ * CMSSiteModule
  *
  * PHP version 5
  *
@@ -17,7 +17,7 @@
  *
  * The Initial Developer of the Original Code is Red Tree Systems, LLC. All Rights Reserved.
  *
- * @category     Site
+ * @category     CMS
  * @author       Red Tree Systems, LLC <support@redtreesystems.com>
  * @copyright    2009 Red Tree Systems, LLC
  * @license      MPL 1.1
