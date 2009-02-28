@@ -24,6 +24,7 @@
  * @version      2.0
  */
 
+require_once 'lib/cms/CMSDBOBackedProvider.php';
 require_once 'lib/cms/CMSPage.php';
 
 class CMSPageProvider extends CMSDBOBackedProvider

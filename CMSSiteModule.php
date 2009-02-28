@@ -24,7 +24,7 @@
  * @version      2.0
  */
 
-// require_once 'lib/cms/CMSPageTemplateProvider.php';
+require_once 'lib/cms/CMSPageProvider.php';
 
 class CMSSiteModule extends SiteModule
 {
@@ -43,8 +43,24 @@ class CMSSiteModule extends SiteModule
     public function onConfig()
     {
         $tsys = $this->site->modules->get('TemplateSystem');
-        $tsys->getPHPSTL();
-        die('cms init here');
+        $pstl = $tsys->getPHPSTL();
+        $gotit = false;
+        foreach ($pstl->getProviders() as $provider) {
+            // TODO SitePageSystem will provide a proper method for registering
+            // new pageContent: providers
+            if ($provider instanceof ContentPageTemplateProvider) {
+                $provider->addProvider(
+                    new CMSPageTemplateProvider($this->site, $pstl), true
+                );
+                $gotit = true;
+                break;
+            }
+        }
+        if (! $gotit) {
+            throw new RuntimeException(
+                'Unable to find ContentPageTemplateProvider in the TemplateSystem'
+            );
+        }
     }
 }
 
