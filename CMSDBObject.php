@@ -89,7 +89,7 @@ abstract class CMSDBObject extends DatabaseObject
                 global $database;
                 $sql = $this->meta()->getCustomSQL('get_modified');
                 $sth = $database->executef($sql, $this->id);
-                $r = $sth->fetch(PDF::FETCH_NUM);
+                $r = $sth->fetch(PDO::FETCH_NUM);
                 $this->modified = $r[0];
             }
         }

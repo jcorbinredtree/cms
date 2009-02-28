@@ -137,7 +137,7 @@ class CMSPage extends CMSDBObject
         // by which CMSPage data is cached to disk
         $var = '$__'.uniqid();
         $cls = get_class($this);
-        $ice = addslashes(serialize($this->serialize));
+        $ice = addslashes(serialize($this->serialize()));
         return
             "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n\n".
             "<template type=\"$this->type\" xmlns:core=\"class://CoreTag\">".

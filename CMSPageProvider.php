@@ -34,17 +34,24 @@ class CMSPageProvider extends CMSDBOBackedProvider
     public function __construct(Site $site, PHPSTL $pstl)
     {
         parent::__construct($site, $pstl);
-        global $database;
-        $this->dbid = preg_replace('~://~', '/', $database->dsnId());
     }
 
     protected function dboForResource($resource)
     {
+        if (!isset($this->dbid)) {
+            global $database;
+            $this->dbid = preg_replace('~://~', '/', $database->dsnId());
+        }
+        if (CMSPage::pathExists($resource)) {
+            return CMSPage::loadPath($resource);
+        } else {
+            return null;
+        }
     }
 
     public function __tostring()
     {
-        return "CMSPage://$this->dbId";
+        return "CMSPage://$this->dbid";
     }
 }
 

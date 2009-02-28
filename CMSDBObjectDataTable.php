@@ -44,7 +44,7 @@ class CMSDBObjectDataTable
         'datatable_has' =>
             'SELECT `key` FROM {table}_data WHERE {key}=? AND `key`=?',
         'datatable_get' =>
-            'SELECT `type`, value {table}_data WHERE {key}=? AND `key`=?',
+            'SELECT `type`, value FROM {table}_data WHERE {key}=? AND `key`=?',
         'datatable_set' =>
             'REPLACE INTO {table}_data ({key}, `key`, `type`, value) VALUES (?, ?, ?, ?)',
         'datatable_clear' =>
@@ -76,7 +76,7 @@ class CMSDBObjectDataTable
             $key = null;
             $sth->bindColumn(1, $key);
             $r = array();
-            while ($sth->fetch) {
+            while ($sth->fetch()) {
                 array_push($r, $key);
             }
             $database->free();
@@ -266,8 +266,8 @@ class CMSDBObjectDataTable
                 $get = $database->prepare($sql);
                 $keys->bindColumn(1, $key);
                 $r = array();
-                while ($keys->fetch) {
-                    $get->execute($dboid, $key);
+                while ($keys->fetch()) {
+                    $get->execute(array($dboid, $key));
                     $r = $get->fetch(PDO::FETCH_NUM);
                     if ($r[0] == 'json') {
                         $r = json_decode($r[1]);

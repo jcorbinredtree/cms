@@ -50,7 +50,7 @@ class CMSSiteModule extends SiteModule
             // new pageContent: providers
             if ($provider instanceof ContentPageTemplateProvider) {
                 $provider->addProvider(
-                    new CMSPageTemplateProvider($this->site, $pstl), true
+                    new CMSPageProvider($this->site, $pstl), true
                 );
                 $gotit = true;
                 break;
