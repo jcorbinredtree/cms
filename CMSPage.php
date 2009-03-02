@@ -53,7 +53,6 @@ require_once 'lib/cms/CMSDBObject.php';
  */
 class CMSPage extends CMSDBObject
 {
-    protected $created;
     protected $path;
     protected $type;
 
@@ -96,17 +95,6 @@ class CMSPage extends CMSDBObject
         }
         $database->free();
         return $r;
-    }
-
-    public function create()
-    {
-        $this->created = time();
-        return parent::create();
-    }
-
-    public function getCreated()
-    {
-        return $created;
     }
 
     public function getPath()

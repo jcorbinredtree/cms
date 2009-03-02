@@ -41,6 +41,7 @@ abstract class CMSDBObject extends DatabaseObject
             'UPDATE {table} SET modified=FROM_UNIXTIME(?) WHERE {key}=?'
     );
 
+    protected $created;
     protected $modified=null;
 
     public $data;
@@ -53,6 +54,7 @@ abstract class CMSDBObject extends DatabaseObject
 
     public function create()
     {
+        $this->created = time();
         parent::create();
         $this->modified = null;
     }
@@ -74,6 +76,11 @@ abstract class CMSDBObject extends DatabaseObject
             $database->rollback();
         }
         $database->commit();
+    }
+
+    public function getCreated()
+    {
+        return $this->created;
     }
 
     public function getModified()
