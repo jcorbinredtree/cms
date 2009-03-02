@@ -42,6 +42,10 @@ class CMSSiteModule extends SiteModule
 
     public function onConfig()
     {
+        $tsys = $this->site->modules->get('TemplateSystem');
+        $pstl = $tsys->getPHPSTL();
+        $pstl->addProvider(new CMSNodeTemplateProvider($this->site, $pstl));
+
         new CMSPageProvider($this->site);
     }
 }

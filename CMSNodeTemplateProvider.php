@@ -1,7 +1,7 @@
 <?php
 
 /**
- * CMSDBOBackedProvider definition
+ * CMSNodeTemplateProvider definition
  *
  * PHP version 5
  *
@@ -24,17 +24,11 @@
  * @version      2.0
  */
 
-require_once 'lib/cms/CMSDBObject.php';
+require_once 'lib/cms/CMSNode.php';
 
-abstract class CMSDBOBackedProvider extends PHPSTLTemplateProvider
+class CMSNodeTemplateProvider extends PHPSTLTemplateProvider
 {
-    /**
-     * Subclasses implement this to do basic CMSDBObject based resolution
-     * @param resource string
-     * @return CMSDBObject the object that will populate the template
-     * @see load
-     */
-    abstract protected function dboForResource($resource);
+    static public $Prefix = 'CMSNode://';
 
     /**
      * @var Site
@@ -42,7 +36,7 @@ abstract class CMSDBOBackedProvider extends PHPSTLTemplateProvider
     protected $site;
 
     /**
-     * Creats a new CMSDBObject backed provider
+     * Creats a new CMSNode template provider
      *
      * @param site Site
      * @param pstl PHPSTL
@@ -63,12 +57,23 @@ abstract class CMSDBOBackedProvider extends PHPSTLTemplateProvider
      */
     public function load($resource)
     {
-        $dbo = $this->dboForResource($resource);
-        if (isset($dbo)) {
-            return $this->createTemplate($resource, $dbo);
+        $pl = strlen(self::$Prefix);
+        if (strlen($resource) > $pl) {
+            $id = (int) substr($resource, $pl);
+            if ($id == 0) {
+                return PHPSTLTemplateProvider::FAIL;
+            }
+            $node = CMSNode::load((int) $id);
+            if (! isset($node)) {
+                return PHPSTLTemplateProvider::FAIL;
+            }
         } else {
-            return PHPSTLTemplateProvider::DECLINE;
+            $node = CMSNode::loadResource($resource);
+            if (! isset($node)) {
+                return PHPSTLTemplateProvider::DECLINE;
+            }
         }
+        return $this->createTemplate($resource, $node);
     }
 
     /**
@@ -81,9 +86,9 @@ abstract class CMSDBOBackedProvider extends PHPSTLTemplateProvider
     public function getLastModified(PHPSTLTemplate $template)
     {
         assert(is_a($template->getProvider(), get_class($this)));
-        $dbo = $template->providerData;
-        assert($dbo instanceof CMSDBObject);
-        return $dbo->getModified();
+        $node = $template->providerData;
+        assert($node instanceof CMSNode);
+        return $node->getModified();
     }
 
     /**
@@ -95,9 +100,20 @@ abstract class CMSDBOBackedProvider extends PHPSTLTemplateProvider
     public function getContent(PHPSTLTemplate $template)
     {
         assert(is_a($template->getProvider(), get_class($this)));
-        $dbo = $template->providerData;
-        assert($dbo instanceof CMSDBObject);
-        return $dbo->getContent();
+        $node = $template->providerData;
+        assert($node instanceof CMSNode);
+        return $node->getContent();
+    }
+
+    private $dbid;
+
+    public function __tostring()
+    {
+        if (!isset($this->dbid)) {
+            global $database;
+            $this->dbid = $database->dsnId();
+        }
+        return self::$Prefix.$this->dbid;
     }
 }
 
