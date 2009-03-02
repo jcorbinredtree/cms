@@ -24,30 +24,26 @@
  * @version      2.0
  */
 
-require_once 'lib/cms/CMSDBOBackedProvider.php';
+require_once 'lib/site/SitePageProvider.php';
 require_once 'lib/cms/CMSPage.php';
 
-class CMSPageProvider extends CMSDBOBackedProvider
+class CMSPageProvider extends SitePageProvider
 {
-    private $dbid;
-
-    public function __construct(Site $site, PHPSTL $pstl)
+    public function loadPage($url)
     {
-        parent::__construct($site, $pstl);
-    }
-
-    protected function dboForResource($resource)
-    {
-        if (!isset($this->dbid)) {
-            global $database;
-            $this->dbid = preg_replace('~://~', '/', $database->dsnId());
+        $cpage = CMSPage::loadPath($url);
+        if (! isset($cpage)) {
+            return SitePageProvider::DECLINE;
         }
-        return CMSPage::loadPath($resource);
-    }
-
-    public function __tostring()
-    {
-        return "CMSPage://$this->dbid";
+        $type = $cpage->getType();
+        if ($type == 'text/html') {
+            $spage = new HTMLPage($this->site, $cpage->data->get('layout'));
+            // TODO meta/asset/title integration from data
+        } else {
+            $spage = new SitePage($this->site, $type);
+            $spage->setDataArray($cpage->data->serialize());
+        }
+        return $spage;
     }
 }
 
