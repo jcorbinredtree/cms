@@ -26,8 +26,7 @@ require_once 'lib/database/DatabaseObject.php';
 require_once 'lib/cms/CMSDBObjectDataTable.php';
 
 /**
- * Common base class for CMSPage and CMSNode, provides the interface needed by
- * CMSDBTemplateProvider
+ * Common base class for CMSPage and CMSNode
  */
 abstract class CMSDBObject extends DatabaseObject
 {
@@ -45,8 +44,6 @@ abstract class CMSDBObject extends DatabaseObject
     protected $modified=null;
 
     public $data;
-
-    abstract public function getContent();
 
     public function __construct()
     {
