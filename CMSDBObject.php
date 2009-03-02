@@ -46,8 +46,6 @@ abstract class CMSDBObject extends DatabaseObject
 
     public $data;
 
-    protected $unserializing=false;
-
     abstract public function getContent();
 
     public function __construct()
@@ -117,24 +115,22 @@ abstract class CMSDBObject extends DatabaseObject
         $this->modified = $when;
     }
 
-    public function serialize()
+    protected function selfToData()
     {
         $data = parent::serialize();
         $data['datatable'] = $this->data->serialize();
         return $data;
     }
 
-    public function unserialize($data, $save=true)
+    protected function dataToSelf($data, $save=true)
     {
-        $this->unserializing = true;
-        parent::unserialize($data, $save);
+        parent::dataToSelf($data, $save);
         if (
             array_key_exists('datatable', $data) &&
             is_array($data['datatable'])
         ) {
-            $this->data->unserialize($data['datatable']);
+            $this->data->unserialize($data['datatable'], $save);
         }
-        $this->unserializing = false;
     }
 }
 
