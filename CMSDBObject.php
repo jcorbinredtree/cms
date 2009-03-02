@@ -64,8 +64,7 @@ abstract class CMSDBObject extends DatabaseObject
 
     public function update()
     {
-        parent::create();
-        $this->setModified();
+        parent::update();
     }
 
     public function delete()
