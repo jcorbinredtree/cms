@@ -270,11 +270,17 @@ class CMSDBObjectDataTable
                     $get->execute(array($dboid, $key));
                     $r = $get->fetch(PDO::FETCH_NUM);
                     if ($r[0] == 'json') {
-                        $r = json_decode($r[1]);
+                        $json = $r[1];
+                        $val = json_decode($json);
+                        if (! isset($val)) {
+                            throw new RuntimeException(
+                                "bad json string: $json"
+                            );
+                        }
+                        $data[$key] = $val;
                     } else {
-                        $r = $r[1];
+                        $data[$key] = $r[1];
                     }
-                    $data[$key] = $r;
                 }
                 $database->free();
             }
