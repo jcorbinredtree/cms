@@ -42,11 +42,7 @@ class CMSPageProvider extends CMSDBOBackedProvider
             global $database;
             $this->dbid = preg_replace('~://~', '/', $database->dsnId());
         }
-        if (CMSPage::pathExists($resource)) {
-            return CMSPage::loadPath($resource);
-        } else {
-            return null;
-        }
+        return CMSPage::loadPath($resource);
     }
 
     public function __tostring()
