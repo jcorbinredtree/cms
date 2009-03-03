@@ -71,7 +71,7 @@ class CMSDBObjectDataTable
             assert(isset($this->dbo->id));
 
             global $database;
-            $sql = $this->dbo->meta()->getCustomSQL('datatable_keys');
+            $sql = $this->dbo->meta()->getSQL('datatable_keys');
             $sth = $database->executef($sql, $this->dbo->id);
             $key = null;
             $sth->bindColumn(1, $key);
@@ -97,7 +97,7 @@ class CMSDBObjectDataTable
             assert(isset($this->dbo->id));
 
             global $database;
-            $sql = $this->dbo->meta()->getCustomSQL('datatable_has');
+            $sql = $this->dbo->meta()->getSQL('datatable_has');
             $database->executef($sql, $this->dbo->id, $key);
             $r = (bool) $database->count() > 0;
             $database->free();
@@ -122,7 +122,7 @@ class CMSDBObjectDataTable
             assert(isset($this->dbo->id));
 
             global $database;
-            $sql = $this->dbo->meta()->getCustomSQL('datatable_get');
+            $sql = $this->dbo->meta()->getSQL('datatable_get');
             $sth = $database->executef($sql, $this->dbo->id, $key);
             $r = null;
             if ($database->count() > 0) {
@@ -165,7 +165,7 @@ class CMSDBObjectDataTable
             }
 
             global $database;
-            $sql = $this->dbo->meta()->getCustomSQL('datatable_set');
+            $sql = $this->dbo->meta()->getSQL('datatable_set');
             $database->executef($sql, $this->dbo->id, $key, $type, $value);
             $database->free();
             $this->dbo->setModified();
@@ -200,7 +200,7 @@ class CMSDBObjectDataTable
             global $database;
             $database->transaction();
             try {
-                $sql = $this->dbo->meta()->getCustomSQL('datatable_set');
+                $sql = $this->dbo->meta()->getSQL('datatable_set');
                 $sth = $database->prepare($sql);
                 for ($i=0; $i<count($d); $i+=2) {
                     $sth->execute($this->dbo->id, $key, $d[$i], $d[$i+1]);
@@ -226,7 +226,7 @@ class CMSDBObjectDataTable
             assert(isset($this->dbo->id));
 
             global $database;
-            $sql = $this->dbo->meta()->getCustomSQL('datatable_clear');
+            $sql = $this->dbo->meta()->getSQL('datatable_clear');
             $database->executef($sql, $this->dbo->id, $key);
             $database->free();
             $this->dbo->setModified();
@@ -241,7 +241,7 @@ class CMSDBObjectDataTable
             assert(isset($this->dbo->id));
 
             global $database;
-            $sql = $this->dbo->meta()->getCustomSQL('datatable_clear_all');
+            $sql = $this->dbo->meta()->getSQL('datatable_clear_all');
             $database->executef($sql, $this->dbo->id);
             $database->free();
             $this->dbo->setModified();
@@ -258,11 +258,11 @@ class CMSDBObjectDataTable
 
             $data = array();
             global $database;
-            $sql = $this->dbo->meta()->getCustomSQL('datatable_keys');
+            $sql = $this->dbo->meta()->getSQL('datatable_keys');
             $keys = $database->executef($sql, $dboid);
             if ($database->count() > 0) {
                 $key = null;
-                $sql = $this->dbo->meta()->getCustomSQL('datatable_get');
+                $sql = $this->dbo->meta()->getSQL('datatable_get');
                 $get = $database->prepare($sql);
                 $keys->bindColumn(1, $key);
                 $r = array();

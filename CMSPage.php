@@ -67,8 +67,8 @@ class CMSPage extends CMSDBObject
     public static function pathExists($path)
     {
         global $database;
-        $meta = DatabaseObject_Meta::forClass('CMSPage');
-        $sql = $meta->getCustomSQL('id_for_path');
+        $meta = DatabaseObjectMeta::forClass('CMSPage');
+        $sql = $meta->getSQL('id_for_path');
         $database->executef($sql, $path);
         $r = (bool) $database->count() > 0;
         $database->free();
@@ -78,8 +78,8 @@ class CMSPage extends CMSDBObject
     public static function loadPath($path)
     {
         global $database;
-        $meta = DatabaseObject_Meta::forClass('CMSPage');
-        $sql = $meta->getCustomSQL('id_for_path');
+        $meta = DatabaseObjectMeta::forClass('CMSPage');
+        $sql = $meta->getSQL('id_for_path');
         $sth = $database->executef($sql, $path);
         $r = null;
         try {
