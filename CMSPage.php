@@ -31,7 +31,7 @@ require_once 'lib/cms/CMSDBObject.php';
  * HTMLPages
  *
  * CREATE TABLE cms_page (
- *     cms_page_id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+ *     cms_page_id INTEGER UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
  *     created DATETIME NOT NULL,
  *     modified TIMESTAMP NOT NULL,
  *     path VARCHAR(255) NOT NULL,
@@ -41,7 +41,7 @@ require_once 'lib/cms/CMSDBObject.php';
  *     INDEX(modified)
  * );
  * CREATE TABLE cms_page_data(
- *     cms_page_id INTEGER NOT NULL,
+ *     cms_page_id INTEGER UNSIGNED NOT NULL,
  *     `key` VARCHAR(255) NOT NULL,
  *     type ENUM ('string', 'json'),
  *     value TEXT NOT NULL,
