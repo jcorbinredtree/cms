@@ -25,37 +25,53 @@
  */
 
 require_once 'lib/site/SitePageProvider.php';
+require_once 'lib/cms/CMSConnector.php';
 require_once 'lib/cms/CMSPage.php';
 
 class CMSPageProvider extends SitePageProvider
 {
+    public static $ConnectorUrl = 'connector/cms/';
+
     public function loadPage($url)
     {
-        $cpage = CMSPage::loadPath($url);
-        if (! isset($cpage)) {
-            return SitePageProvider::DECLINE;
-        }
-        $type = $cpage->getType();
-        if ($type == 'text/html') {
-            $spage = new HTMLPage($this->site);
-            $this->populateHTMLPage($cpage, $spage);
-        } else {
-            $spage = new SitePage($this->site, $type);
-            $spage->setDataArray($cpage->data->serialize());
-        }
-
-        $tsys = null;
-        foreach ($cpage->getNodeAreas() as $area) {
-            $nodes = $cpage->getNodes($area);
-            foreach ($nodes as $node) {
-                if (! isset($tsys)) {
-                    $tsys = $this->site->modules->get('TemplateSystem');
-                }
-                $tmpl = $tsys->load('CMSNode://'.$node->id);
-                $spage->addToBuffer($area, $tmpl);
+        $cl = strlen(self::$ConnectorUrl);
+        if (
+            strlen($url) > $cl &&
+            substr($url, 0, $cl) == self::$ConnectorUrl
+        ) {
+            $page = CMSConnector::resolve($this->site, substr($url, $cl));
+            if (isset($page)) {
+                return $page;
+            } else {
+                return SitePageProvider::DECLINE;
             }
+        } else {
+            $cpage = CMSPage::loadPath($url);
+            if (! isset($cpage)) {
+                return SitePageProvider::DECLINE;
+            }
+            $type = $cpage->getType();
+            if ($type == 'text/html') {
+                $spage = new HTMLPage($this->site);
+                $this->populateHTMLPage($cpage, $spage);
+            } else {
+                $spage = new SitePage($this->site, $type);
+                $spage->setDataArray($cpage->data->serialize());
+            }
+
+            $tsys = null;
+            foreach ($cpage->getNodeAreas() as $area) {
+                $nodes = $cpage->getNodes($area);
+                foreach ($nodes as $node) {
+                    if (! isset($tsys)) {
+                        $tsys = $this->site->modules->get('TemplateSystem');
+                    }
+                    $tmpl = $tsys->load('CMSNode://'.$node->id);
+                    $spage->addToBuffer($area, $tmpl);
+                }
+            }
+            return $spage;
         }
-        return $spage;
     }
 
     /**
