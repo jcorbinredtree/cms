@@ -136,6 +136,7 @@ class CMSPage extends CMSDBObject
         $this->type = $type;
     }
 
+    private $fakeNodes;
     private $linkedNodes;
     private function loadNodes()
     {
@@ -153,82 +154,128 @@ class CMSPage extends CMSDBObject
 
     public function getNodeAreas()
     {
-        if (! isset($this->linkedNodes)) {
-            $this->loadNodes();
+        if (isset($this->fakeNodes)) {
+            return array_keys($this->fakeNodes);
+        } else {
+            if (! isset($this->linkedNodes)) {
+                $this->loadNodes();
+            }
+            return array_keys($this->linkedNodes);
         }
-        return array_keys($this->linkedNodes);
     }
 
     public function getNodes($area)
     {
         assert(is_string($area));
-        if (! isset($this->linkedNodes)) {
-            $this->loadNodes();
-        }
+        if (isset($this->fakeNodes)) {
+            if (! array_key_exists($area, $this->fakeNodes)) {
+                return null;
+            }
+            return $this->fakeNodes[$area];
+        } else {
+            if (! isset($this->linkedNodes)) {
+                $this->loadNodes();
+            }
 
-        if (! array_key_exists($area, $this->linkedNodes)) {
-            return null;
+            if (! array_key_exists($area, $this->linkedNodes)) {
+                return null;
+            }
+            $r = array();
+            foreach ($this->linkedNodes[$area] as $link) {
+                array_push($r, $link->getNode());
+            }
+            return $r;
         }
-        $r = array();
-        foreach ($this->linkedNodes[$area] as $link) {
-            array_push($r, $link->getNode());
-        }
-        return $r;
     }
 
     public function addNode(CMSNode $node, $area, $pos=-1)
     {
         assert(is_string($area));
         assert(is_int($pos));
-        if (! isset($this->linkedNodes)) {
-            $this->loadNodes();
-        }
-        $links = array_key_exists($area, $this->linkedNodes)
-            ? $this->linkedNodes[$area] : array();
-        foreach ($links as $link) {
-            if ($link->getNode() === $node) {
-                throw new InvalidArgumentException(
-                    'node already linked to that area'
-                );
+        if (isset($this->fakeNodes)) {
+            $nodes = array_key_exists($area, $this->fakeNodes)
+                ? $this->fakeNodes[$area] : array();
+            foreach ($nodes as $n) {
+                if ($n === $node) {
+                    throw new InvalidArgumentException(
+                        'node already linked to that area'
+                    );
+                }
             }
-        }
-        if ($pos < 0) {
-            $pos = max(0, count($links) + $pos);
-        }
-        $pos = min(count($links)-1, $pos);
-
-        global $database;
-        $database->transaction();
-        try {
-            $new = new CMSPageNodeLink($this, $node, $area);
             if ($pos < 0) {
-                array_push($links, $new);
-            } else {
-                array_splice($links, $pos, 0, $new);
-                CMSPageNodeLink::reorder($links);
+                $pos = max(0, count($nodes) + $pos);
             }
-        } catch (Exception $e) {
-            $database->rollback();
-            throw $e;
-        }
-        $database->commit();
+            $pos = min(count($nodes)-1, $pos);
+            if ($pos < 0) {
+                array_push($nodes, $node);
+            } else {
+                array_splice($nodes, $pos, 0, $node);
+            }
+            $this->fakeNodes[$area] = $nodes;
+        } else {
+            if (! isset($this->linkedNodes)) {
+                $this->loadNodes();
+            }
+            $links = array_key_exists($area, $this->linkedNodes)
+                ? $this->linkedNodes[$area] : array();
+            foreach ($links as $link) {
+                if ($link->getNode() === $node) {
+                    throw new InvalidArgumentException(
+                        'node already linked to that area'
+                    );
+                }
+            }
+            if ($pos < 0) {
+                $pos = max(0, count($links) + $pos);
+            }
+            $pos = min(count($links)-1, $pos);
 
-        $this->linkedNodes[$area] = $links;
+            global $database;
+            $database->transaction();
+            try {
+                $new = new CMSPageNodeLink($this, $node, $area);
+                if ($pos < 0) {
+                    array_push($links, $new);
+                } else {
+                    array_splice($links, $pos, 0, $new);
+                    CMSPageNodeLink::reorder($links);
+                }
+            } catch (Exception $e) {
+                $database->rollback();
+                throw $e;
+            }
+            $database->commit();
+
+            $this->linkedNodes[$area] = $links;
+        }
     }
 
     public function removeNode(CMSNode $node, $area)
     {
         assert(is_string($area));
-        if (! isset($this->linkedNodes)) {
-            $this->loadNodes();
-        }
-        $links = array_key_exists($area, $this->linkedNodes)
-            ? $this->linkedNodes[$area] : array();
+        if (isset($this->fakeNodes)) {
+            $nodes = array_key_exists($area, $this->fakeNodes)
+                ? $this->fakeNodes[$area] : array();
 
-        foreach ($links as $link) {
-            if ($link->getNode() === $node) {
-                $link->delete();
-                break;
+            $new = array();
+            foreach ($nodes as $n) {
+                if ($n !== $node) {
+                    array_push($new, $n);
+                }
+            }
+            $this->fakeNodes[$area] = $new;
+        } else {
+            if (! isset($this->linkedNodes)) {
+                $this->loadNodes();
+            }
+            $links = array_key_exists($area, $this->linkedNodes)
+                ? $this->linkedNodes[$area] : array();
+
+            foreach ($links as $link) {
+                if ($link->getNode() === $node) {
+                    $link->delete();
+                    break;
+                }
             }
         }
     }
@@ -238,38 +285,125 @@ class CMSPage extends CMSDBObject
         assert(is_array($nodes));
         assert(is_string($area));
 
+        if (isset($this->fakeNodes)) {
+            $this->fakeNodes[$area] = $nodes;
+        } else {
+            if (! isset($this->linkedNodes)) {
+                $this->loadNodes();
+            }
+            $links = array_key_exists($area, $this->linkedNodes)
+                ? $this->linkedNodes[$area] : array();
+            $new = array();
+
+            foreach ($nodes as $node) {
+                if (is_object($node)) {
+                    if ($node instanceof CMSPageNodeLink) {
+                        throw new InvalidArgumentException(
+                            'element not a CMSPageNodeLink'
+                        );
+                    }
+                    $node = $node->id;
+                } elseif (! is_int($node)) {
+                    throw new InvalidArgumentException('invalid element');
+                }
+                $link = null;
+                for ($i=0; $i<count($links); $i++) {
+                    if ($links[$i]->getNode()->id == $node) {
+                        $link = array_splice($links, $i, 1);
+                        $link = $link[0];
+                        array_push($new, $link);
+                        break;
+                    }
+                }
+                if (! isset($link)) {
+                    throw new InvalidArgumentException("node $node isn't linked to page $this->id");
+                }
+            }
+            CMSPageNodeLink::reorder($new);
+        }
+    }
+
+    protected function setNodes($set)
+    {
+        assert(is_array($set));
         if (! isset($this->linkedNodes)) {
             $this->loadNodes();
         }
-        $links = array_key_exists($area, $this->linkedNodes)
-            ? $this->linkedNodes[$area] : array();
-        $new = array();
 
-        foreach ($nodes as $node) {
-            if (is_object($node)) {
-                if ($node instanceof CMSPageNodeLink) {
-                    throw new InvalidArgumentException(
-                        'element not a CMSPageNodeLink'
-                    );
+        global $database;
+        $database->transaction();
+        try {
+            foreach ($set as $area => $nodes) {
+                if (! array_key_exists($area, $this->linkedNodes)) {
+                    foreach ($nodes as $node) {
+                        $this->addNode($node, $area);
+                    }
+                } else {
+                    $old = $this->getNodes($area);
+                    foreach (array_diff($old, $nodes) as $node) {
+                        $this->removeNode($node, $area);
+                    }
+                    foreach (array_diff($nodes, $old) as $node) {
+                        $this->addNode($node, $area);
+                    }
+                    $this->setNodeOrder($nodes, $area);
                 }
-                $node = $node->id;
-            } elseif (! is_int($node)) {
-                throw new InvalidArgumentException('invalid element');
             }
-            $link = null;
-            for ($i=0; $i<count($links); $i++) {
-                if ($links[$i]->getNode()->id == $node) {
-                    $link = array_splice($links, $i, 1);
-                    $link = $link[0];
-                    array_push($new, $link);
-                    break;
+            foreach (array_diff(
+                array_keys($this->linkedNodes),
+                array_keys($nodes)
+            ) as $goneArea) {
+                $l = $this->linkedNodes[$area];
+                while (count($l)) {
+                    array_pop($l)->delete();
                 }
             }
-            if (! isset($link)) {
-                throw new InvalidArgumentException("node $node isn't linked to page $this->id");
-            }
+            $this->linkedNodes = null;
+        } catch (Exception $e) {
+            $database->rollback();
+            throw $e;
         }
-        CMSPageNodeLink::reorder($new);
+        $database->commit();
+
+        if (isset($this->fakeNodes)) {
+            $this->fakeNodes = null;
+        }
+    }
+
+    public function create()
+    {
+        if (! isset($this->fakeNodes)) {
+            parent::create();
+            return;
+        }
+        global $database;
+        $database->transaction();
+        try {
+            parent::create();
+            $this->setNodes($this->fakeNodes);
+        } catch (Exception $e) {
+            $database->rollback();
+            throw $e;
+        }
+        $database->commit();
+    }
+
+    public function update()
+    {
+        if (! isset($this->fakeNodes)) {
+            parent::update();
+            return;
+        }
+        global $database;
+        $database->transaction();
+        try {
+            parent::update();
+            $this->setNodes($this->fakeNodes);
+        } catch (Exception $e) {
+            $database->rollback();
+            throw $e;
+        }
+        $database->commit();
     }
 
     public function delete()
@@ -284,6 +418,50 @@ class CMSPage extends CMSDBObject
             throw $e;
         }
         $databsae->commit();
+    }
+
+    protected function selfToData()
+    {
+        if (! isset($this->linkedNodes)) {
+            $this->loadNodes();
+        }
+
+        $data = parent::selfToData();
+
+        $data['nodes'] = array();
+        foreach ($this->linkedNodes as $area => $nodes) {
+            $n = array();
+            foreach ($nodes as $link) {
+                array_push($n, $link->getNode()->id);
+            }
+            $data['nodes'][$area] = $n;
+        }
+
+        return $data;
+    }
+
+    protected function dataToSelf($data, $save=true)
+    {
+        parent::dataToSelf($data, $save);
+
+        if (isset($data['nodes'])) {
+            $nodes = $data['nodes'];
+            foreach ($nodes as $area => $ids) {
+                $nodes[$area] = array_map(
+                    array('CMSNode', 'load'), $nodes[$area]
+                );
+            }
+
+            if ($save) {
+                $this->setNodes($nodes);
+            } else {
+                if (isset($this->linkedNodes)) {
+                    $this->linkedNodes = null;
+                }
+                $this->fakeNodes = $nodes;
+                return;
+            }
+        }
     }
 }
 
