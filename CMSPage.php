@@ -53,6 +53,13 @@ require_once 'lib/cms/CMSDBObject.php';
  */
 class CMSPage extends CMSDBObject
 {
+    // Convenience call to DatabaseObject::load until php supports late static
+    // binding in 5.3.0
+    public static function load($id)
+    {
+        return DatabaseObject::load(__CLASS__, $id);
+    }
+
     protected $path;
     protected $type;
 
@@ -85,9 +92,7 @@ class CMSPage extends CMSDBObject
         try {
             if ($database->count() > 0) {
                 $r = $sth->fetch(PDO::FETCH_NUM);
-                $o = new self();
-                $o->fetch($r[0]);
-                $r = $o;
+                $r = self::load($r[0]);
             }
         } catch (Exception $e) {
             $database->free();
