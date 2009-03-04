@@ -36,7 +36,7 @@ abstract class CMSDBObject extends DatabaseObject
 
     public static $CustomSQL = array(
         'get_modified' =>
-            'SELECT modified FROM {table} WHERE {key}=?',
+            'SELECT UNIX_TIMESTAMP(modified) FROM {table} WHERE {key}=?',
         'set_modified' =>
             'UPDATE {table} SET modified=FROM_UNIXTIME(?) WHERE {key}=?'
     );
@@ -88,7 +88,7 @@ abstract class CMSDBObject extends DatabaseObject
         if (! isset($this->modified)) {
             if (isset($this->id)) {
                 global $database;
-                $sql = $this->meta()->getCustomSQL('get_modified');
+                $sql = $this->meta()->getSQL('get_modified');
                 $sth = $database->executef($sql, $this->id);
                 $r = $sth->fetch(PDO::FETCH_NUM);
                 $this->modified = $r[0];
@@ -113,7 +113,7 @@ abstract class CMSDBObject extends DatabaseObject
         if (isset($this->id)) {
             global $database;
             $meta = $this->meta();
-            $sql = $this->meta()->getCustomSQL('set_modified');
+            $sql = $this->meta()->getSQL('set_modified');
             $database->executef($sql, $when, $this->id);
         }
         $this->modified = $when;
@@ -121,7 +121,7 @@ abstract class CMSDBObject extends DatabaseObject
 
     protected function selfToData()
     {
-        $data = parent::serialize();
+        $data = parent::selfToData();
         $data['datatable'] = $this->data->serialize();
         return $data;
     }
