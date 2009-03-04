@@ -25,6 +25,7 @@
  */
 
 require_once 'lib/cms/CMSDBObject.php';
+require_once 'lib/cms/CMSNode.php';
 
 /**
  * All CMSPage represent data to populate an HTMLPage, but are not themselves
