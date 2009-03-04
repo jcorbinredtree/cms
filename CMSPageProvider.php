@@ -43,6 +43,18 @@ class CMSPageProvider extends SitePageProvider
             $spage = new SitePage($this->site, $type);
             $spage->setDataArray($cpage->data->serialize());
         }
+
+        $tsys = null;
+        foreach ($cpage->getNodeAreas() as $area) {
+            $nodes = $cpage->getNodes($area);
+            foreach ($nodes as $node) {
+                if (! isset($tsys)) {
+                    $tsys = $this->site->modules->get('TemplateSystem');
+                }
+                $tmpl = $tsys->load('CMSNode://'.$node->id);
+                $spage->addToBuffer($area, $tmpl);
+            }
+        }
         return $spage;
     }
 

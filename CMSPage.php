@@ -26,6 +26,7 @@
 
 require_once 'lib/cms/CMSDBObject.php';
 require_once 'lib/cms/CMSNode.php';
+require_once 'lib/cms/CMSPageNodeLink.php';
 
 /**
  * All CMSPage represent data to populate an HTMLPage, but are not themselves
@@ -49,6 +50,17 @@ require_once 'lib/cms/CMSNode.php';
  *     PRIMARY KEY (cms_page_id, `key`),
  *     INDEX(cms_page_id),
  *     INDEX(`key`)
+ * );
+ * CREATE TABLE cms_page_node(
+ *     cms_page_id INTEGER UNSIGNED NOT NULL,
+ *     cms_node_id INTEGER UNSIGNED NOT NULL,
+ *     area VARCHAR(255) NOT NULL,
+ *     weight TINYINT UNSIGNED NOT NULL,
+ *     PRIMARY KEY (cms_page_id, cms_node_id, area),
+ *     INDEX (cms_page_id),
+ *     INDEX (cms_node_id),
+ *     INDEX (cms_page_id, area),
+ *     INDEX (cms_page_id, area, weight)
  * );
  *
  */
@@ -122,6 +134,156 @@ class CMSPage extends CMSDBObject
     public function setType($type)
     {
         $this->type = $type;
+    }
+
+    private $linkedNodes;
+    private function loadNodes()
+    {
+        $list = CMSPageNodeLink::loadFor($this);
+        $nodes = array();
+        foreach ($list as $link) {
+            $a = $link->getArea();
+            if (! array_key_exists($a, $nodes)) {
+                $nodes[$a] = array();
+            }
+            array_push($nodes[$a], $link);
+        }
+        $this->linkedNodes = $nodes;
+    }
+
+    public function getNodeAreas()
+    {
+        if (! isset($this->linkedNodes)) {
+            $this->loadNodes();
+        }
+        return array_keys($this->linkedNodes);
+    }
+
+    public function getNodes($area)
+    {
+        assert(is_string($area));
+        if (! isset($this->linkedNodes)) {
+            $this->loadNodes();
+        }
+
+        if (! array_key_exists($area, $this->linkedNodes)) {
+            return null;
+        }
+        $r = array();
+        foreach ($this->linkedNodes[$area] as $link) {
+            array_push($r, $link->getNode());
+        }
+        return $r;
+    }
+
+    public function addNode(CMSNode $node, $area, $pos=-1)
+    {
+        assert(is_string($area));
+        assert(is_int($pos));
+        if (! isset($this->linkedNodes)) {
+            $this->loadNodes();
+        }
+        $links = array_key_exists($area, $this->linkedNodes)
+            ? $this->linkedNodes[$area] : array();
+        foreach ($links as $link) {
+            if ($link->getNode() === $node) {
+                throw new InvalidArgumentException(
+                    'node already linked to that area'
+                );
+            }
+        }
+        if ($pos < 0) {
+            $pos = max(0, count($links) + $pos);
+        }
+        $pos = min(count($links)-1, $pos);
+
+        global $database;
+        $database->transaction();
+        try {
+            $new = new CMSPageNodeLink($this, $node, $area);
+            if ($pos < 0) {
+                array_push($links, $new);
+            } else {
+                array_splice($links, $pos, 0, $new);
+                CMSPageNodeLink::reorder($links);
+            }
+        } catch (Exception $e) {
+            $database->rollback();
+            throw $e;
+        }
+        $database->commit();
+
+        $this->linkedNodes[$area] = $links;
+    }
+
+    public function removeNode(CMSNode $node, $area)
+    {
+        assert(is_string($area));
+        if (! isset($this->linkedNodes)) {
+            $this->loadNodes();
+        }
+        $links = array_key_exists($area, $this->linkedNodes)
+            ? $this->linkedNodes[$area] : array();
+
+        foreach ($links as $link) {
+            if ($link->getNode() === $node) {
+                $link->delete();
+                break;
+            }
+        }
+    }
+
+    public function setNodeOrder($nodes, $area)
+    {
+        assert(is_array($nodes));
+        assert(is_string($area));
+
+        if (! isset($this->linkedNodes)) {
+            $this->loadNodes();
+        }
+        $links = array_key_exists($area, $this->linkedNodes)
+            ? $this->linkedNodes[$area] : array();
+        $new = array();
+
+        foreach ($nodes as $node) {
+            if (is_object($node)) {
+                if ($node instanceof CMSPageNodeLink) {
+                    throw new InvalidArgumentException(
+                        'element not a CMSPageNodeLink'
+                    );
+                }
+                $node = $node->id;
+            } elseif (! is_int($node)) {
+                throw new InvalidArgumentException('invalid element');
+            }
+            $link = null;
+            for ($i=0; $i<count($links); $i++) {
+                if ($links[$i]->getNode()->id == $node) {
+                    $link = array_splice($links, $i, 1);
+                    $link = $link[0];
+                    array_push($new, $link);
+                    break;
+                }
+            }
+            if (! isset($link)) {
+                throw new InvalidArgumentException("node $node isn't linked to page $this->id");
+            }
+        }
+        CMSPageNodeLink::reorder($new);
+    }
+
+    public function delete()
+    {
+        global $database;
+        $database->transaction();
+        try {
+            CMSPageNodeLink::deleteFor($this);
+            parent::delete();
+        } catch (Exception $e) {
+            $database->rollback();
+            throw $e;
+        }
+        $databsae->commit();
     }
 }
 

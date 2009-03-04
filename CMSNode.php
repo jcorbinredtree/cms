@@ -25,6 +25,7 @@
  */
 
 require_once 'lib/cms/CMSDBObject.php';
+require_once 'lib/cms/CMSPageNodeLink.php';
 
 /**
  * A node in the CMS:
@@ -271,6 +272,20 @@ class CMSNode extends CMSDBObject
         $data = parent::selfToData();
         $data['content'] = $self->getContent();
         return $data;
+    }
+
+    public function delete()
+    {
+        global $database;
+        $database->transaction();
+        try {
+            CMSPageNodeLink::deleteFor($this);
+            parent::delete();
+        } catch (Exception $e) {
+            $database->rollback();
+            throw $e;
+        }
+        $databsae->commit();
     }
 }
 
