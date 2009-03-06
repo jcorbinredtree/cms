@@ -1,7 +1,7 @@
 <?php
 
 /**
- * CMSSiteModule
+ * CMS
  *
  * PHP version 5
  *
@@ -26,7 +26,7 @@
 
 require_once 'lib/cms/CMSPageProvider.php';
 
-class CMSSiteModule extends SiteModule
+class CMS extends SiteModule
 {
     public static $RequiredModules = array(
         // 'Database',  TODO Someday...
