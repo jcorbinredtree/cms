@@ -110,8 +110,8 @@ class CMSNodeTemplateProvider extends PHPSTLTemplateProvider
     public function __tostring()
     {
         if (!isset($this->dbid)) {
-            global $database;
-            $this->dbid = $database->dsnId();
+            $database = $this->site->modules->get('Database');
+            $this->dbid = $database->getDSN();
         }
         return self::$Prefix.$this->dbid;
     }

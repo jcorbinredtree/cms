@@ -152,13 +152,12 @@ class CMSNode extends CMSDBObject
             return null;
         }
         $key = null;
-        global $database;
+        $database = $this->getDatabase();
         $meta = DatabaseObjectMeta::forClass(__CLASS__);
         $sql = $meta->getSQL('resource_key');
-        $sth = $database->executef($sql, $resource);
+        $sth = $database->execute($sql, $resource);
         $sth->bindColumn(1, $key);
         $r = $sth->fetch();
-        $database->free();
 
         if ($r && isset($id)) {
             return self::load($id);
@@ -177,13 +176,12 @@ class CMSNode extends CMSDBObject
     {
         assert(is_int($id));
         $type = null;
-        global $database;
         $meta = DatabaseObjectMeta::forClass(__CLASS__);
+        $database = $meta->getDatabase();
         $sql = $meta->getSQL('get_type');
-        $sth = $database->executef($sql, $id);
+        $sth = $database->execute($sql, $id);
         $sth->bindColumn(1, $type);
         $r = $sth->fetch();
-        $database->free();
 
         if ($r && isset($type)) {
             $class = self::getTypeClass($type);
@@ -200,6 +198,7 @@ class CMSNode extends CMSDBObject
     {
         assert(array_Key_exists($this->type, self::$RegisteredTypes));
         assert(self::$RegisteredTypes[$this->type] == get_class($this));
+        parent::__construct();
     }
 
     public function fetch($id)
@@ -234,12 +233,11 @@ class CMSNode extends CMSDBObject
     public function getContent()
     {
         if (! isset($this->content) && isset($this->id)) {
-            global $database;
+            $database = $this->getDatabase();
             $sql = $this->meta()->getSQL('get_content');
-            $sth = $database->executef($sql, $this->id);
+            $sth = $database->execute($sql, $this->id);
             $sth->bindColumn(1, $this->content);
             $sth->fetch();
-            $database->free();
         }
         return $this->content;
     }
@@ -247,13 +245,12 @@ class CMSNode extends CMSDBObject
     public function setContent(&$content)
     {
         $this->content = $content;
-        global $database;
+        $database = $this->getDatabase();
         $sql = $this->meta->getSQL('set_content');
-        $database->prepare($sql);
-        $database->bindParam(1, $this->content);
-        $database->bindParam(2, $this->id);
-        $database->execute();
-        $database->free();
+        $sth = $database->prepare($sql);
+        $sth->bindParam(1, $this->content);
+        $sth->bindParam(2, $this->id);
+        $sth->execute();
     }
 
     protected function dataToSelf($data, $save)
@@ -276,7 +273,7 @@ class CMSNode extends CMSDBObject
 
     public function delete()
     {
-        global $database;
+        $database = $this->getDatabase();
         $database->transaction();
         try {
             CMSPageNodeLink::deleteFor($this);

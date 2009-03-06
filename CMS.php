@@ -24,12 +24,10 @@
  * @version      2.0
  */
 
-require_once 'lib/cms/CMSPageProvider.php';
-
 class CMS extends SiteModule
 {
     public static $RequiredModules = array(
-        // 'Database',  TODO Someday...
+        'Database',
         // 'SitePageSystem' // will require TemplateSystem
         'TemplateSystem'
     );
@@ -40,7 +38,15 @@ class CMS extends SiteModule
      *   );
      */
 
-    public function onConfig()
+    public function initialize()
+    {
+        require_once "$this->moduleDir/CMSPageProvider.php";
+        require_once "$this->moduleDir/CMSNodeTemplateProvider.php";
+
+        $this->site->addCallback('onPostConfig', array($this, 'onPostConfig'));
+    }
+
+    public function onPostConfig()
     {
         $tsys = $this->site->modules->get('TemplateSystem');
         $pstl = $tsys->getPHPSTL();

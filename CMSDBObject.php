@@ -66,8 +66,7 @@ abstract class CMSDBObject extends DatabaseObject
 
     public function delete()
     {
-        global $database;
-
+        $database = $this->getDatabase();
         $database->transaction();
         try {
             $this->data->clearAll();
@@ -87,9 +86,9 @@ abstract class CMSDBObject extends DatabaseObject
     {
         if (! isset($this->modified)) {
             if (isset($this->id)) {
-                global $database;
+                $database = $this->getDatabase();
                 $sql = $this->meta()->getSQL('get_modified');
-                $sth = $database->executef($sql, $this->id);
+                $sth = $database->execute($sql, $this->id);
                 $r = $sth->fetch(PDO::FETCH_NUM);
                 $this->modified = $r[0];
             }
@@ -111,10 +110,10 @@ abstract class CMSDBObject extends DatabaseObject
         }
 
         if (isset($this->id)) {
-            global $database;
+            $database = $this->getDatabase();
             $meta = $this->meta();
             $sql = $this->meta()->getSQL('set_modified');
-            $database->executef($sql, $when, $this->id);
+            $database->execute($sql, $when, $this->id);
         }
         $this->modified = $when;
     }

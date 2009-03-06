@@ -70,16 +70,15 @@ class CMSDBObjectDataTable
         } else {
             assert(isset($this->dbo->id));
 
-            global $database;
+            $database = $this->getDatabase();
             $sql = $this->dbo->meta()->getSQL('datatable_keys');
-            $sth = $database->executef($sql, $this->dbo->id);
+            $sth = $database->execute($sql, $this->dbo->id);
             $key = null;
             $sth->bindColumn(1, $key);
             $r = array();
             while ($sth->fetch()) {
                 array_push($r, $key);
             }
-            $database->free();
             return $r;
         }
     }
@@ -96,11 +95,10 @@ class CMSDBObjectDataTable
             assert(is_string($key));
             assert(isset($this->dbo->id));
 
-            global $database;
+            $database = $this->getDatabase();
             $sql = $this->dbo->meta()->getSQL('datatable_has');
-            $database->executef($sql, $this->dbo->id, $key);
-            $r = (bool) $database->count() > 0;
-            $database->free();
+            $sth = $database->execute($sql, $this->dbo->id, $key);
+            $r = (bool) $sth->rowCount() > 0;
             return $r;
         }
     }
@@ -121,11 +119,11 @@ class CMSDBObjectDataTable
             assert(is_string($key));
             assert(isset($this->dbo->id));
 
-            global $database;
+            $database = $this->getDatabase();
             $sql = $this->dbo->meta()->getSQL('datatable_get');
-            $sth = $database->executef($sql, $this->dbo->id, $key);
+            $sth = $database->execute($sql, $this->dbo->id, $key);
             $r = null;
-            if ($database->count() > 0) {
+            if ($sth->rowCount() > 0) {
                 $r = $sth->fetch(PDO::FETCH_NUM);
                 if ($r[0] == 'json') {
                     $r = json_decode($r[1]);
@@ -133,7 +131,6 @@ class CMSDBObjectDataTable
                     $r = $r[1];
                 }
             }
-            $database->free();
             return $r;
         }
     }
@@ -164,10 +161,9 @@ class CMSDBObjectDataTable
                 );
             }
 
-            global $database;
+            $database = $this->getDatabase();
             $sql = $this->dbo->meta()->getSQL('datatable_set');
-            $database->executef($sql, $this->dbo->id, $key, $type, $value);
-            $database->free();
+            $database->execute($sql, $this->dbo->id, $key, $type, $value);
             $this->dbo->setModified();
         }
     }
@@ -197,7 +193,7 @@ class CMSDBObjectDataTable
                 array_push($d, $type, $value);
             }
 
-            global $database;
+            $database = $this->getDatabase();
             $database->transaction();
             try {
                 $sql = $this->dbo->meta()->getSQL('datatable_set');
@@ -205,7 +201,6 @@ class CMSDBObjectDataTable
                 for ($i=0; $i<count($d); $i+=2) {
                     $sth->execute($this->dbo->id, $key, $d[$i], $d[$i+1]);
                 }
-                $database->free();
             } catch (Exception $e) {
                 $database->rollback();
                 throw $e;
@@ -225,10 +220,9 @@ class CMSDBObjectDataTable
             assert(is_string($key));
             assert(isset($this->dbo->id));
 
-            global $database;
+            $database = $this->getDatabase();
             $sql = $this->dbo->meta()->getSQL('datatable_clear');
-            $database->executef($sql, $this->dbo->id, $key);
-            $database->free();
+            $database->execute($sql, $this->dbo->id, $key);
             $this->dbo->setModified();
         }
     }
@@ -240,10 +234,9 @@ class CMSDBObjectDataTable
         } else {
             assert(isset($this->dbo->id));
 
-            global $database;
+            $database = $this->getDatabase();
             $sql = $this->dbo->meta()->getSQL('datatable_clear_all');
-            $database->executef($sql, $this->dbo->id);
-            $database->free();
+            $database->execute($sql, $this->dbo->id);
             $this->dbo->setModified();
         }
     }
@@ -257,10 +250,10 @@ class CMSDBObjectDataTable
             $dboid = $this->dbo->id;
 
             $data = array();
-            global $database;
+            $database = $this->dbo->getDatabase();
             $sql = $this->dbo->meta()->getSQL('datatable_keys');
-            $keys = $database->executef($sql, $dboid);
-            if ($database->count() > 0) {
+            $keys = $database->execute($sql, $dboid);
+            if ($keys->rowCount() > 0) {
                 $key = null;
                 $sql = $this->dbo->meta()->getSQL('datatable_get');
                 $get = $database->prepare($sql);
@@ -282,9 +275,7 @@ class CMSDBObjectDataTable
                         $data[$key] = $r[1];
                     }
                 }
-                $database->free();
             }
-            $database->free();
             return $data;
         }
     }

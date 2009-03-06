@@ -86,15 +86,13 @@ class CMSPageNodeLink extends DatabaseObjectLink
         return self::$cache[$cacheKey];
     }
 
-    static protected function fixWeights($from, $area)
+    protected function fixWeights($from, $area)
     {
-        $meta = DatabaseObjectLinkMeta::forClass(__CLASS__);
-        global $database;
+        $database = $this->getDatabase();
+        $meta = $this->meta();
 
         $list = $database->prepare($meta->getSQL('fixsel'));
-        $database->free();
         $upd = $database->prepare($meta->getSQL('fixupd'));
-        $database->free();
 
         $fromkey = $meta->getFromKey();
         $tokey = $meta->getToKey();
@@ -146,18 +144,16 @@ class CMSPageNodeLink extends DatabaseObjectLink
         }
 
         $meta = DatabaseObjectLinkMeta::forClass(__CLASS__);
-        global $database;
+        $database = $meta->getDatabase();
         $sql = $meta->getSQL('pagecount');
-        $sth = $database->executef($sql, $page->id, $area);
+        $sth = $database->execute($sql, $page->id, $area);
         $c = $sth->fetch(PDO::FETCH_NUM);
         $c = $c[0];
-        $database->free();
         if ($c != count($links)) {
             throw new InvalidArgumentException('will not partially reorder');
         }
 
         $upd = $database->prepare($meta->getSQL('fixupd'));
-        $database->free();
         $this->lockTables();
         $database->transaction();
         try {
@@ -195,11 +191,9 @@ class CMSPageNodeLink extends DatabaseObjectLink
 
     public function doInsert()
     {
-        global $database;
+        $database = $this->getDatabase();
         $sql = $this->meta()->getSQL('new_link_weight');
-        $sth = $database->prepare($sql);
-        $database->free();
-        $sth->execute($this->keyValue());
+        $sth = $database->prepare($sql)->execute($this->keyValue());
         $r = $sth->fetch(PDO::FETCH_NUM);
         $this->weight = (int) $r[0];
         return parent::doInsert();
@@ -222,14 +216,14 @@ class CMSPageNodeLink extends DatabaseObjectLink
 
     public function delete()
     {
-        global $database;
+        $database = $this->getDatabase();
         $this->lockTables();
         $database->transaction();
         try {
             $from = $this->from;
             $area = $this->area;
             parent::delete();
-            self::fixWeights($from, $area);
+            $this->fixWeights($from, $area);
             $key = self::cacheKey($this->from, $this->to, $this->area);
             unset(self::$cached[$key]);
         } catch (Exception $e) {

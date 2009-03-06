@@ -70,7 +70,7 @@ class CMSPage extends CMSDBObject
     // binding in 5.3.0
     public static function load($id)
     {
-        return DatabaseObject::load(__CLASS__, $id);
+        return parent::load(__CLASS__, $id);
     }
 
     protected $path;
@@ -86,32 +86,25 @@ class CMSPage extends CMSDBObject
 
     public static function pathExists($path)
     {
-        global $database;
         $meta = DatabaseObjectMeta::forClass(__CLASS__);
+        $database = $meta->getDatabase();
         $sql = $meta->getSQL('id_for_path');
-        $database->executef($sql, $path);
-        $r = (bool) $database->count() > 0;
-        $database->free();
+        $sth = $database->execute($sql, $path);
+        $r = (bool) $sth->rowCount() > 0;
         return $r;
     }
 
     public static function loadPath($path)
     {
-        global $database;
         $meta = DatabaseObjectMeta::forClass(__CLASS__);
+        $database = $meta->getDatabase();
         $sql = $meta->getSQL('id_for_path');
         $sth = $database->executef($sql, $path);
         $r = null;
-        try {
-            if ($database->count() > 0) {
-                $r = $sth->fetch(PDO::FETCH_NUM);
-                $r = self::load($r[0]);
-            }
-        } catch (Exception $e) {
-            $database->free();
-            throw $e;
+        if ($sth->rowCount() > 0) {
+            $r = $sth->fetch(PDO::FETCH_NUM);
+            $r = self::load($r[0]);
         }
-        $database->free();
         return $r;
     }
 
@@ -230,7 +223,7 @@ class CMSPage extends CMSDBObject
             }
             $pos = min(count($links)-1, $pos);
 
-            global $database;
+            $database = $this->getDatabase();
             $database->transaction();
             try {
                 $new = new CMSPageNodeLink($this, $node, $area);
@@ -330,7 +323,7 @@ class CMSPage extends CMSDBObject
             $this->loadNodes();
         }
 
-        global $database;
+        $database = $this->getDatabase();
         $database->transaction();
         try {
             foreach ($set as $area => $nodes) {
@@ -376,7 +369,7 @@ class CMSPage extends CMSDBObject
             parent::create();
             return;
         }
-        global $database;
+        $database = $this->getDatabase();
         $database->transaction();
         try {
             parent::create();
@@ -394,7 +387,7 @@ class CMSPage extends CMSDBObject
             parent::update();
             return;
         }
-        global $database;
+        $database = $this->getDatabase();
         $database->transaction();
         try {
             parent::update();
@@ -408,7 +401,7 @@ class CMSPage extends CMSDBObject
 
     public function delete()
     {
-        global $database;
+        $database = $this->getDatabase();
         $database->transaction();
         try {
             CMSPageNodeLink::deleteFor($this);
