@@ -28,8 +28,7 @@ class CMS extends SiteModule
 {
     public static $RequiredModules = array(
         'Database',
-        // 'SitePageSystem' // will require TemplateSystem
-        'TemplateSystem'
+        'PageSystem'
     );
     /*
      * TODO: someday...
@@ -40,19 +39,22 @@ class CMS extends SiteModule
 
     public function initialize()
     {
+        parent::initialize();
+
         require_once "$this->moduleDir/CMSPageProvider.php";
         require_once "$this->moduleDir/CMSNodeTemplateProvider.php";
 
         $this->site->addCallback('onPostConfig', array($this, 'onPostConfig'));
     }
 
-    public function onPostConfig()
+    public function onPostConfig(Site $site)
     {
         $tsys = $this->site->modules->get('TemplateSystem');
         $pstl = $tsys->getPHPSTL();
         $pstl->addProvider(new CMSNodeTemplateProvider($this->site, $pstl));
 
-        new CMSPageProvider($this->site);
+        $pagesys = $this->site->modules->get('PageSystem');
+        new CMSPageProvider($pagesys);
     }
 }
 

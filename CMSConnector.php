@@ -24,9 +24,7 @@
  * @version      2.0
  */
 
-require_once 'lib/site/SitePage.php';
-
-class CMSConnector extends SitePage
+class CMSConnector extends Page
 {
     public static function resolve(Site $site, $url)
     {
