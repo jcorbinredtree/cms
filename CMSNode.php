@@ -91,7 +91,9 @@ class CMSNode extends CMSDBObject
         'get_type' => 'SELECT type FROM {table} WHERE {key}=?',
         'get_content' => 'SELECT content FROM {table} WHERE {key}=?',
         'set_content' => 'UPDATE {table} SET content=? WHERE {key}=?',
-        'resource_key' => 'SELECT {key} FROM {table} WHERE res_name=?'
+        'resource_key' => 'SELECT {key} FROM {table} WHERE res_name=?',
+        'list'      => 'SELECT {key}, res_name FROM {table} ORDER BY res_name',
+        'list_type' => 'SELECT {key}, res_name FROM {table} WHERE type=? ORDER BY res_name'
     );
 
     public static $table = 'cms_node';
@@ -100,6 +102,26 @@ class CMSNode extends CMSDBObject
     private static $RegisteredTypes = array(
         'content' => __CLASS__
     );
+
+    public static function getList($callback, $type=null)
+    {
+        assert(is_callable($callback));
+
+        $meta = DatabaseObjectMeta::forClass(__CLASS__);
+        $database = $meta->getDatabase();
+
+        $id = $type = $res = null;
+        if (isset($type)) {
+            $sth = $database->execute($meta->getSQL('list_type'), $type);
+        } else {
+            $sth = $database->execute($meta->getSQL('list'));
+        }
+        $sth->bindColumn(1, $id);
+        $sth->bindColumn(2, $res);
+        while ($sth->fetch()) {
+            call_user_func($callback, $id, $res);
+        }
+    }
 
     /**
      * Registeres a node type
@@ -251,24 +273,6 @@ class CMSNode extends CMSDBObject
         $sth->bindParam(1, $this->content);
         $sth->bindParam(2, $this->id);
         $sth->execute();
-    }
-
-    protected function dataToSelf($data, $save)
-    {
-        parent::dataToSelf($data, $save);
-        $content = array_key_exists('content', $data) ? $data['content'] : null;
-        if ($save) {
-            $this->setContent($data);
-        } else {
-            $self->content = $content;
-        }
-    }
-
-    protected function selfToData()
-    {
-        $data = parent::selfToData();
-        $data['content'] = $self->getContent();
-        return $data;
     }
 
     public function delete()

@@ -80,9 +80,30 @@ class CMSPage extends CMSDBObject
     public static $key = 'cms_page_id';
 
     public static $CustomSQL = array(
-        'id_for_path' =>
-            'SELECT {key} FROM {table} WHERE path=?'
+        'list' => 'SELECT {key}, path FROM {table} ORDER BY path',
+        'list_type' => 'SELECT {key}, path FROM {table} WHERE type=? ORDER BY path',
+        'id_for_path' => 'SELECT {key} FROM {table} WHERE path=?'
     );
+
+    public static function getList($callback, $type=null)
+    {
+        assert(is_callable($callback));
+
+        $meta = DatabaseObjectMeta::forClass(__CLASS__);
+        $database = $meta->getDatabase();
+
+        $id = $type = $path = null;
+        if (isset($type)) {
+            $sth = $database->execute($meta->getSQL('list_type'), $type);
+        } else {
+            $sth = $database->execute($meta->getSQL('list'));
+        }
+        $sth->bindColumn(1, $id);
+        $sth->bindColumn(2, $path);
+        while ($sth->fetch()) {
+            call_user_func($callback, $id, $path);
+        }
+    }
 
     public static function pathExists($path)
     {
@@ -99,7 +120,7 @@ class CMSPage extends CMSDBObject
         $meta = DatabaseObjectMeta::forClass(__CLASS__);
         $database = $meta->getDatabase();
         $sql = $meta->getSQL('id_for_path');
-        $sth = $database->executef($sql, $path);
+        $sth = $database->execute($sql, $path);
         $r = null;
         if ($sth->rowCount() > 0) {
             $r = $sth->fetch(PDO::FETCH_NUM);
