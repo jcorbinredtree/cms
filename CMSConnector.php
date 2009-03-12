@@ -30,7 +30,7 @@ class CMSConnector extends Page
     {
         $matches = array();
         if (! preg_match(
-            '~^(page|node)/(\w+)(?:/(\d+)(?:/(.+))?)?$~',
+            '~^(page|node)/(\w+)(?:/(.+))?$~',
             $url, $matches
         )) {
             return null;
@@ -40,16 +40,11 @@ class CMSConnector extends Page
             $what = $matches[1];
             $action = $matches[2];
             if (count($matches) > 3) {
-                $id = (int) $matches[3];
-            } else {
-                $id = null;
-            }
-            if (count($matches) > 4) {
-                $extra = $matches[4];
+                $extra = $matches[3];
             } else {
                 $extra = null;
             }
-            return new self($site, $what, $action, $id, $extra);
+            return new self($site, $what, $action, $extra);
         } catch (BadMethodCallException $e) {
             return null;
         }
@@ -57,7 +52,7 @@ class CMSConnector extends Page
 
     protected $response;
 
-    public function __construct(Site $site, $what, $action, $id, $extra)
+    public function __construct(Site $site, $what, $action, $extra)
     {
         $method = 'do'.ucfirst($what).ucfirst($action);
         if (! method_exists(__CLASS__, $method)) {
@@ -67,42 +62,56 @@ class CMSConnector extends Page
         parent::__construct($site, 'application/json', false);
         $this->response = array();
 
-        if (isset($id)) {
-            switch ($what) {
-            case 'page':
-                $subject = CMSPage::load($id);
-                break;
-            case 'node':
-                $subject = CMSNode::load($id);
-                break;
-            default:
-                throw new RuntimeException('shouldn\'t happen');
-                break;
-            }
+        if (array_key_exists('id', $_REQUEST)) {
+            $id = $_REQUEST['id'];
         }
 
         try {
+            if (isset($id)) {
+                switch ($what) {
+                case 'page':
+                    $subject = CMSPage::load($id);
+                    break;
+                case 'node':
+                    $subject = CMSNode::load($id);
+                    break;
+                default:
+                    throw new RuntimeException('shouldn\'t happen');
+                    break;
+                }
+            }
+            $rclass = new ReflectionClass(get_class($this));
+            $rmeth = $rclass->getMethod($method);
+
             if (isset($subject)) {
                 $this->$method($subject, $extra);
             } else {
+                if ($rmeth->getNumberOfRequiredParameters() > 0) {
+                    throw new InvalidArgumentException('subject required');
+                }
                 $this->$method();
             }
-        } catch (Exception $e) {
-            $this->doException($e);
+        } catch (StopException $e) {
+            // noop
         }
     }
 
-    public function doException(Exception $e)
+    public function doPageList()
     {
-        $this->headers->setStatus(500, 'Unhandled Exception');
-        $this->respones = array();
-        $this->response['type'] = get_class($e);
-        $this->response['message'] = $e->getMessage();
+        $this->response = array();
+        CMSPage::getList(array($this, 'pageListItem'));
+    }
+    public function pageListItem($id, $path)
+    {
+        array_push($this->response, array(
+            'id'   => $id,
+            'path' => $path
+        ));
     }
 
     public function doPageCreate()
     {
-        $data = $this->getJsonBody();
+        $data = $this->getJSON();
         $page = new CMSPage();
         $page->unserialize($data, true);
         $this->response = $page->serialize();
@@ -113,9 +122,9 @@ class CMSConnector extends Page
         $page->delete();
     }
 
-    public function doPageSave(CMSPage $page, $extra)
+    public function doPageUpdate(CMSPage $page, $extra)
     {
-        $data = $this->getJsonBody();
+        $data = $this->getJSON();
         if (! array_key_exists($data['id']) || $data['id'] != $page->id) {
             throw new InvalidArgumentException('page id mismatch');
         }
@@ -123,14 +132,44 @@ class CMSConnector extends Page
         $this->response = $page->serialize();
     }
 
-    public function doPageLoad(CMSPage $page, $extra)
+    public function doPageLoad()
     {
+        $args = func_get_args();
+        if (count($args) && $args[0] instanceof CMSPage) {
+            $page = $args[0];
+        }
+
+        if (! isset($page) && $this->hasJSON()) {
+            $data = $this->getJSON();
+            if (array_key_exists('url', $data)) {
+                $url = $data['url'];
+                throw new RuntimeException('load for url '.$url);
+            }
+        }
+
+        if (! isset($page)) {
+            throw new InvalidArgumentException('no page specified');
+        }
+
         $this->response = $page->serialize();
+    }
+
+    public function doNodeList()
+    {
+        $this->response = array();
+        CMSNode::getList(array($this, 'nodeListItem'));
+    }
+    public function nodeListItem($id, $res)
+    {
+        array_push($this->response, array(
+            'id'      => $id,
+            'resName' => $res
+        ));
     }
 
     public function doNodeCreate()
     {
-        $data = $this->getJsonBody();
+        $data = $this->getJSON();
         $node = new CMSNode();
         $node->unserialize($data, true);
         $this->response = $node->serialize();
@@ -141,9 +180,9 @@ class CMSConnector extends Page
         $node->delete();
     }
 
-    public function doNodeSave(CMSNode $node, $extra)
+    public function doNodeUpdate(CMSNode $node, $extra)
     {
-        $data = $this->getJsonBody();
+        $data = $this->getJSON();
         if (! array_key_exists($data['id']) || $data['id'] != $node->id) {
             throw new InvalidArgumentException('node id mismatch');
         }
@@ -156,9 +195,67 @@ class CMSConnector extends Page
         $this->response = $node->serialize();
     }
 
-    protected function getJsonBody()
+    protected function hasJSON()
     {
-        throw new RuntimeException('unimplemented');
+        if (isset($this->json)) {
+            return $this->json === false ? false : true;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] != 'POST') {
+            return $this->json = false;
+        }
+
+        $type = $_SERVER['CONTENT_TYPE'];
+        if (($i = strpos($type, ';')) !== false) {
+            // TODO deal with charset?
+            $type = substr($type, 0, $i);
+        }
+        if ($type != 'application/json') {
+            return $this->json = false;
+        }
+
+        $input = trim(file_get_contents('php://input'));
+        if (! strlen($input)) {
+            return $this->json = false;
+        }
+
+        $data = json_decode($input);
+        if (! $data) {
+            if (function_exists('json_last_error')) { // >= 5.3.0
+                $code = json_last_error();
+                switch ($code) {
+                case JSON_ERROR_NONE:
+                    $err = 'No error has occured';
+                    break;
+                case JSON_ERROR_DEPTH:
+                    $err = 'The maximum stack depth has been exceeded';
+                    break;
+                case JSON_ERROR_CTRL_CHAR:
+                    $err = 'Control character error, possibly incorrectly encoded';
+                    break;
+                case JSON_ERROR_SYNTAX:
+                    $err = 'Syntax error';
+                    break;
+                default:
+                    $err = 'unknown';
+                }
+                throw new RuntimeException("invalid json input: $err ($code)");
+            } else {
+                throw new RuntimeException('invalid json input');
+            }
+        }
+        $this->json = $data;
+
+        return true;
+    }
+
+    protected function getJSON()
+    {
+        if (! $this->hasJSON()) {
+            throw new RuntimeException('no json input');
+        }
+
+        return $this->json;
     }
 
     protected function onRender()
