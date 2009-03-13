@@ -13,7 +13,7 @@
   <script href="js/util.js" />
   <script href="js/ModalBox.js" />
   <script href="js/cmstest.js" />
-  <stylesheet href="cmstest.css" />
+  <stylesheet href="css/cmstest.css" />
 </page:addAssets>
 
 <div class="block" id="CMSTest">
