@@ -41,8 +41,8 @@ class CMS extends SiteModule
     {
         parent::initialize();
 
-        require_once "$this->moduleDir/CMSPageProvider.php";
-        require_once "$this->moduleDir/CMSNodeTemplateProvider.php";
+        require_once "$this->dir/CMSPageProvider.php";
+        require_once "$this->dir/CMSNodeTemplateProvider.php";
 
         $this->site->addCallback('onPostConfig', array($this, 'onPostConfig'));
     }
