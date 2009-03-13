@@ -29,7 +29,24 @@ class CMSConnector extends Page
     public static function resolve(Site $site, $url)
     {
         $matches = array();
-        if (! preg_match(
+        if ($url == 'test') {
+            $cms = $site->modules->get('CMS');
+            $oldPath = CurrentPath::set($cms->getDir());
+            $prefix = $cms->getPrefix();
+            try {
+                $page = new HTMLPage(
+                    $site,
+                    null,
+                    "$prefix/cmstest.html",
+                    array('cms' => $cms)
+                );
+            } catch (Exception $e) {
+                CurrentPath::set($oldPath);
+                throw $e;
+            }
+            CurrentPath::set($oldPath);
+            return $page;
+        } elseif (! preg_match(
             '~^(page|node)/(\w+)(?:/(.+))?$~',
             $url, $matches
         )) {

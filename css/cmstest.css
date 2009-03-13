@@ -1,0 +1,21 @@
+.ModalBoxOverlay {
+  background-image: url(overlay.png);
+}
+.ModalBox {
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 3px;
+}
+.ModalBox .ModalBoxClose {
+  background-color: white;
+  color: black;
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  font-size: 10px;
+  line-height: 10px;
+  height: 12px;
+  width: 12px;
+  display: block;
+  text-decoration: none;
+}

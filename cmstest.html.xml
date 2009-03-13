@@ -1,0 +1,43 @@
+<template
+  xmlns:core="urn:redtree:php-stl:core:v2.0"
+  xmlns:page="urn:redtree:ui:page:v1.0">
+
+<core:set var="${page.title}" value="CMS Connector Test" />
+<core:param name="cms" type="CMS" required="true" />
+
+<page:addAssets>
+  <link rel="connector" type="application/json" title="CMS"
+    href="${site.url}/connector/cms" />
+  <script href="js/XMLHttpRequest.js" />
+  <script href="js/json2.js" />
+  <script href="js/util.js" />
+  <script href="js/ModalBox.js" />
+  <script href="js/cmstest.js" />
+  <stylesheet href="cmstest.css" />
+</page:addAssets>
+
+<div class="block" id="CMSTest">
+  <span id="connectorUrl" />/<select id="type">
+    <option>page</option>
+    <option>node</option>
+  </select>/<select id="action">
+    <option>list</option>
+    <option>load</option>
+    <option>delete</option>
+    <option>update</option>
+    <option>create</option>
+  </select>/<input type="text" id="extra" size="15" />
+  <br />
+
+  <label for="input">Input:</label><br />
+  <textarea id="input" rows="5" cols="40" style="width: 90%" />
+  <br />
+
+  <label for="output">Output:</label><br />
+  <textarea id="output" rows="15" cols="40" style="width: 90%" />
+  <br />
+
+  <button id="submit">Submit</button>
+</div>
+
+</template>
